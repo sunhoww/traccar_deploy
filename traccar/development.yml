@@ -1,0 +1,63 @@
+version: "3.7"
+
+
+services:
+  db:
+    image: mysql:8.0
+    volumes:
+      - data:/var/lib/mysql:rw
+    env_file:
+      - ./mysql.env
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - traccar_net
+
+  app:
+    image: sunhoww/traccar:4.2
+    depends_on:
+      - db
+    ports:
+      - "5000-5150:5000-5150"
+      - "5000-5150:5000-5150/udp"
+    volumes:
+      - logs:/opt/traccar/logs:rw
+      - ./start.sh:/opt/traccar/start.sh:ro
+      - ./traccar.xml:/opt/traccar/conf/traccar.xml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082"]
+      interval: 60s
+      timeout: 5s
+      retries: 10
+    env_file:
+      - ./traccar.env
+    networks:
+      - web
+      - traccar_net
+    entrypoint: /bin/sh
+    command: /opt/traccar/start.sh
+    labels:
+      - "traefik.docker.network=web"
+      - "traefik.enable=true"
+      - "traefik.frontend.rule=Host:traccar.docker.localhost"
+      - "traefik.port=8082"
+
+
+volumes:
+  logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${MOUNTPOINT_VOLUME:-.}/logs
+      o: bind
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${MOUNTPOINT_VOLUME:-.}/data
+      o: bind
+
+
+networks:
+  web:
+    external: true
+  traccar_net:
