@@ -1,4 +1,4 @@
-FROM traccar/traccar:4.2
+FROM traccar/traccar:4.3
 
 WORKDIR /opt/traccar
 
